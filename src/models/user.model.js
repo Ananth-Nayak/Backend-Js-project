@@ -1,4 +1,4 @@
-import mongoose, {Schema} from mongoose;
+import mongoose, {Schema} from 'mongoose';
 const userSchema = new Schema(
   {
     username:{
@@ -32,10 +32,20 @@ const userSchema = new Schema(
     },
     watchHistory:[
       {
-        type:mongoose.Schema.Types.ObjectId
+        type:Schema.Types.ObjectId,
         ref:'Video',
       }
-    ]
+    ],
+    password: {
+      type: String,
+      required: [true, "Password is required"]
+    },
+    refreshToken:{
+      type:String
+    }
+  },
+  {
+    timeStamps:true
   }
 )
 
