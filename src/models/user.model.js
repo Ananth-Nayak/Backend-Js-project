@@ -20,7 +20,7 @@ const userSchema = new Schema(
       lowercase: true,
       trim:true,
     },
-    fullname:{
+    fullName:{
       type:String,
       required: true,
       lowercase: true,
@@ -60,9 +60,38 @@ userSchema.pre('save',async function(next){
 })
 //pre is a middleware, happens just before any event in this case while saving the userdata
 //but inside callback fn we only do encrypt if password is modified.
+// using normal function declaration in callback function as arrow function does not carry this references
 
 userSchema.methods.isPasswordCorrect = async function(password){
   return await bcrypt.compare(password,this.password)
 }
+
+userSchema.methods.generateAccessToken = function (){
+  return jwt.sign(
+    {
+      _id:this._id,
+      username:this.username,
+      email:this.email,
+      fullName:this.fullName,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn:process.env.ACCESS_TOKEN_EXPIRY
+    }
+  )
+}
+
+userSchema.methods.generateRefreshtoken = function(){
+  return jwt.sign(
+    {
+      _id:this._id
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn:REFRESH_TOKEN_EXPIRY
+    }
+  )
+}
+
 
 export const User = mongoose.model("User",userSchema);
