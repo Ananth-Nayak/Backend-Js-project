@@ -86,7 +86,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // mongodb adds _id to every entry(here for every user created)
   // select Specifies which document fields to include or exclude
   // by default every field is selected
-  // but we want to exclude passowrd and refreshtoken from the response we are returning to user after succesful user creation.
+  // but we want to exclude password and refreshtoken from the response we are returning to user after succesful user creation.
   // we have to differentiate fields using space, since we are excluding we use minus symbol
 
   // throwing error if user created is failed

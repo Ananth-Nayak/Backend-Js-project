@@ -54,7 +54,7 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 //pre is a middleware, happens just before any event in this case while saving the userdata
