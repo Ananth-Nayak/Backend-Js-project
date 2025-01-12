@@ -46,11 +46,27 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //check for files(avatar, coverImage) in local
 
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
   // middleware adds lot of fields in the request
   // here multer gives accesss to field called files in the request
   // in that we need only path of that files
+
+  const avatarLocalPath = req.files?.avatar[0]?.path;
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // there is a problem with above code if user does not upload coverImage as it is not required field
+  // If req.files?.coverImage evaluates to undefined, then the code tries to access undefined[0], which throws: TypeError: Cannot read properties of undefined (reading '0')
+  // optional chaining prevents errors when trying to access properties on 'undefined' or 'null'.
+  // It does not handle cases where you try to access elements of an array ([0]) or perform operations on 'undefined'.
+  // so basically with the above code we are accessing undefined[0], when user does not upload coverImage, which leads to throw an error
+
+  // fixing above issue
+  let coverImageLocalPath; // this will be undefined, if user does not upload
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files?.coverImage[0]?.path;
+  }
 
   // since avatar is required field we throw the error if missed
   if (!avatarLocalPath) {
@@ -67,14 +83,16 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // creating user object in database
-  const user = User.create({
+  const user = await User.create({
     fullName, // fullName:fullName (es6)
     avatar: avatar.url,
     coverImage: coverImage?.url || "",
+    //if coverImage is not uploaded, then it will be empty string
     email,
     password,
     username: username.toLowerCase(),
   });
+  // console.log(user);
   // avatar is validated as it is required field
   // since avatar variable holds the complete response returned from the cloudinary after upload completed on cloudinary we only take the url of that file
   // since coverImage is not required filed not sure wheter user has uploaded the file or not so we will put option chaining or empty value
