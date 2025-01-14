@@ -119,4 +119,32 @@ const registerUser = asyncHandler(async (req, res) => {
   // we are sending response from our own customized apiresponse class
 });
 
+const loginUser = asyncHandler(async (req, res) => {
+  // get details from frontend(data from req body)
+  // check whether user has sent the details empty or not
+  // logic for login either with username or email.
+  // since user is trying to login, check user is already exist or not
+  // password check
+  // access and refresh token
+  // send cookies
+  // return response
+
+  const { email, username, password } = req.body;
+
+  // throwing an error if both the username and email is not sent by the user
+  if (!username || !email) {
+    throw new ApiError(400, "username or email is required");
+  }
+
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+  // finding user either with username or email
+  // with this we can give the option to users that they can login with either username or email.
+
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+});
+
 export { registerUser };
