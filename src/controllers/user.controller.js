@@ -4,6 +4,32 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+// since access and refresh tokens needs in so much places for user we create method to generate tokens for user
+// we could have write this in different file but these tokens only needed while validating user only
+// so we created this method inside user controller only
+const generateAccessAndRefreshTokens = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshtoken();
+    // we generated access tokens and refresh tokens for a user
+    // we give access token to user, but we store the refreshtoken in our database
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+    //since we are saving the data in user using save, the mongoose model start to kick in
+    //also the password field will, so it asks for password when we are saving it
+    // to avoid it we set validateBeforeSave to false
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiErrorI(
+      500,
+      "Something went wrong while generating refresh and access token"
+    );
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   // steps for register user logic
   // user register depend on how user schema is defined
@@ -145,6 +171,26 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exist");
   }
+
+  //checking password
+
+  // since we already created a function in user model to check the password using bcrypt method we use that
+  const isPasswordValid = await user.isPasswordCorrect(password);
+
+  // here we use - 'user', not 'User'.
+  // bcz User is model (which contains different users data)
+  // but we added the method to isPassword to each and every user so we use the instance of User model that is user
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid user credentials");
+  }
+
+  // if password is correct then calling method to generate tokens for user by passing userid
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+  // we are returning access and refresh token from this method
+  // in that method we do 'DB' operation like user.save(), we use await while invoking the method
 });
 
 export { registerUser };
