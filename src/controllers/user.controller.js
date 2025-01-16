@@ -190,7 +190,45 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
   // we are returning access and refresh token from this method
-  // in that method we do 'DB' operation like user.save(), we use await while invoking the method
+  // in that method we do 'DB' operation like user.save(), so we use await while invoking the method
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+  // we could have used above user but when getting that 'user' from DB refresh token was'nt set , it set afterwards.
+  // that's why we run anothe query on DB.
+  // it's a optional step
+
+  //now we want send access and refresh Token as cookies
+  // since we used cookie parser middleware already, we can directly add to the response
+  // before sending cookies, we need to create options for cookies
+  // options are nothing but object
+  // by default cookies can be modified from the frontend to avoid this and to make it secure and modifiable only from server we create options in which httpOnly and secure set to true
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return (
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      // we can add cookies to response like this, bcz of cookie parser
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            user: loggedInUser,
+            accessToken,
+            refreshToken,
+            //though we are sending token in cookies, to handle different use cases we are also sending these tokens in response (it's a good practice)
+          },
+          "User Logged In Successfully!!"
+        )
+      )
+  );
 });
 
 export { registerUser };
