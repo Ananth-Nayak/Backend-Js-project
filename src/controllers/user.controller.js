@@ -231,4 +231,9 @@ const loginUser = asyncHandler(async (req, res) => {
   );
 });
 
+const logoutUser = asyncHandler(async (req, res) => {
+  // we cannot directly get the user id and remove them bcz we will not give form to user to logout so that we can get thier user_id by mail or any other field
+  // therfor we create a middleware
+});
+
 export { registerUser };
