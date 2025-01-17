@@ -234,6 +234,32 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
   // we cannot directly get the user id and remove them bcz we will not give form to user to logout so that we can get thier user_id by mail or any other field
   // therfor we create a middleware
+
+  // using the middleware we created now we have access to user using req.user
+  // now we find the user and remove refreshToken from the user data model
+  // and also removing the tokens cookies
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined, //setting user refreshtoken to undefined after findById
+      },
+    },
+    {
+      new: true, //it returns user's updated vale of user
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options) // name should be same as while creating cookie
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User Logged Out Successfully"));
 });
 
-export { registerUser };
+export { registerUser, loginUser, logoutUser };

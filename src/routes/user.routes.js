@@ -1,6 +1,11 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller.js";
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+} from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -24,5 +29,13 @@ router.route("/register").post(
 // fields can take files from different fields(here coverImage, avatar) as array of object (similarly upload.array is used for multiple files for single fields, similarly upload.single for single file)
 // in that we specify the field name of files and maximum count of files that field can take from single user
 // after this registerUser method is called
+
+router.route("/login").post(loginUser);
+
+// secured routes
+router.route("/logout").post(verifyJWT, logoutUser);
+// when route hits to /logout post method, it will call verifyJWT to verify the user
+// since we wrote 'next()' at the end of verifyJwt method, bcz of it, logoutUser get called next
+// this is how we add multiple middleware to a route
 
 export default router;
