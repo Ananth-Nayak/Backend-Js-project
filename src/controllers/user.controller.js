@@ -10,20 +10,28 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
+    // // debugging steps
+    // if (!user) throw new ApiError(400, "User Not Found");
+    // else console.log("User created successfully");
+
     const accessToken = user.generateAccessToken();
+    // console.log("Access token Granted", accessToken);
+
     const refreshToken = user.generateRefreshtoken();
+    // console.log("reftresh token granted", refreshToken);
     // we generated access tokens and refresh tokens for a user
     // we give access token to user, but we store the refreshtoken in our database
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
-    //since we are saving the data in user using save, the mongoose model start to kick in
-    //also the password field will, so it asks for password when we are saving it
+    console.log("User saved with referesh token");
+    //since we are saving the data in user using save, the mongoose model starts to kick in
+    //also the password field will, so it asks for password and when we are saving it
     // to avoid it we set validateBeforeSave to false
 
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiErrorI(
+    throw new ApiError(
       500,
       "Something went wrong while generating refresh and access token"
     );
@@ -156,9 +164,10 @@ const loginUser = asyncHandler(async (req, res) => {
   // return response
 
   const { email, username, password } = req.body;
+  // console.log(req.body);
 
   // throwing an error if both the username and email is not sent by the user
-  if (!username || !email) {
+  if (!(username || email)) {
     throw new ApiError(400, "username or email is required");
   }
 
@@ -242,11 +251,12 @@ const logoutUser = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $set: {
-        refreshToken: undefined, //setting user refreshtoken to undefined after findById
+        refreshToken: undefined,
+        //updating user's refreshtoken value to undefined in DB after finding By userId
       },
     },
     {
-      new: true, //it returns user's updated vale of user
+      new: true, //it returns user's updated value
     }
   );
 
