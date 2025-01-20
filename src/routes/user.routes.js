@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   logoutUser,
+  refreshBothTokens,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -37,5 +38,6 @@ router.route("/logout").post(verifyJWT, logoutUser);
 // when route hits to /logout post method, it will call verifyJWT to verify the user
 // since we wrote 'next()' at the end of verifyJwt method, bcz of it, logoutUser get called next
 // this is how we add multiple middleware to a route
+router.route("/refresh-token").post(refreshBothTokens);
 
 export default router;
