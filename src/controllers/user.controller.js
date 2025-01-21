@@ -338,4 +338,70 @@ const refreshBothTokens = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshBothTokens };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  // we are using our own auth middleware,
+  // so we get user details from req.user
+  const user = await User.findById(req.user?._id);
+
+  // while creating User Schema we have added is password correct method to the each user to check the old password is correct or not
+  const isPasswordCorrect = user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid Old Password");
+  }
+
+  user.password = newPassword;
+
+  await user.save({ validateBeforeSave: false });
+  // before saving user to database, we used pre method which will be called just before saving the user to database, in that if password is not modified then it will call next(), if modified then it will encrypt
+  // validatebefore set to false not to check the validation of other fields
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed Succesfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current User fetched Successfully!"));
+});
+
+const updateUserDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  // since we need both the details, if any one of them missing we throw an error
+  // we can also update by using one field, it's our process which decides the logic that how we want to update the user details, here we need both the details to update
+  if (!fullName || !email) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName, // => fullName:fullName
+        email,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User Data updated successfully!"));
+});
+// by setting new to true in 3rd argument to findByIdAndUpdate
+// it will update user data and then returns the updated data of user here
+// and we are storing that in user variable
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshBothTokens,
+  getCurrentUser,
+  updateUserDetails,
+};

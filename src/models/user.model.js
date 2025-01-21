@@ -60,6 +60,7 @@ userSchema.pre("save", async function (next) {
 //pre is a middleware, happens just before any event in this case while saving the userdata
 //but inside callback fn we only do encrypt if password is modified.
 // using normal function declaration in callback function as arrow function does not carry this references
+// isModified given by mongoose wheter particular field is modified or not
 
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);

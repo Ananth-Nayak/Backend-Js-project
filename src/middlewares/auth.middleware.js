@@ -30,7 +30,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
     // now decodedToken has user id of user after verifying the access token
     const user = await User.findById(decodedToken?._id).select(
-      "-select -refreshToken"
+      "-password -refreshToken"
     );
 
     if (!user) {
