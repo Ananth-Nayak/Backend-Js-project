@@ -3,7 +3,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { verify } from "jsonwebtoken";
 import jwt from "jsonwebtoken";
 
 // since access and refresh tokens needs in so much places for user we create method to generate tokens for user
@@ -388,14 +387,74 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password -refreshToken");
+  // by setting new to true in 3rd argument to findByIdAndUpdate
+  // it will update user data and then returns the updated data of user here
+  // and we are storing that in user variable
 
   return res
     .status(200)
     .json(new ApiResponse(200, user, "User Data updated successfully!"));
 });
-// by setting new to true in 3rd argument to findByIdAndUpdate
-// it will update user data and then returns the updated data of user here
-// and we are storing that in user variable
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalPath = req.file?.path;
+  // here we used, req.file whereas while registering the user we used req.files
+  // bcz, we are taking only one file from the user to update
+  // remember whenever we send the data using form-data through req.body we have to use multer like middlewares otherwise req.body will be empty
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is required");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar.url) {
+    throw new ApiError(400, "Error while uploading on Avatar");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar image updated successfully"));
+});
+
+// similarly for updating coverImage
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const coverImageLocalPath = req.file?.path;
+
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, "Cover Image file is required");
+  }
+
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+  if (!coverImage.url) {
+    throw new ApiError(400, "Error while uploading on cover image");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "cover Image updated successfully"));
+});
 
 export {
   registerUser,
@@ -404,4 +463,6 @@ export {
   refreshBothTokens,
   getCurrentUser,
   updateUserDetails,
+  updateAvatar,
+  updateCoverImage,
 };
