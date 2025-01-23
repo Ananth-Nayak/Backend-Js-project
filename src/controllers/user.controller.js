@@ -456,6 +456,121 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "cover Image updated successfully"));
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  // our main goal is here to give all the profile details to the user
+  // whenever they visit any channel(channel is also a user like in youtube)
+  // profiles details:- avatar,coverImage,subcribers,subscribedTo other channels
+  // all are calculated using aggregation pipelines
+
+  // -----------------------------------------------------------------------
+
+  // first of all getting current channel
+  // when user hits specific chanel's endpoint we will be able to see thier profile
+  // which means req.params is helpful to get the channel username
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing");
+  }
+
+  // complete the pipeline
+  const channel = await User.aggregate([
+    // in first stage we have to find the channel using username, which we got through the req.params
+    // bcz we need channel profile details such as subsribers and all other to display information about channel when any user hit the endpoint of that channel
+    {
+      $match: {
+        username: username?.toLowerCase(),
+        // we get whichever document's field username is matching to the username that we got from endpoint
+        // and passing this result to next stages
+      },
+    },
+
+
+    // second stage to get all the subscriber to this channel
+    {
+      $lookup: {
+        from: "subscriptions",
+        // since the model name converts to plural and to lowercase in database
+        localField: "_id", // this refering to User document's _id field
+        foreignField: "channel",
+        // since we create the document every time when the user is subscribed to channel
+        // we get the subscriber details by counting all the document's which have the same channel name
+        as: "subscribers",
+        // the user field will have the 'subscribers' field in which all the subscrtibers list is stored
+
+        // now we get all the documents who subscribed to the channel(user) and pass it for the next to stage to count all the documents to get subscriber coun6t
+      },
+    },
+
+
+    // third stage to get this channel subscribed to other channels
+    // here we get the user(channel) document(which we got using req.params at first place) 
+    // with extra field added from the previous stage
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+        // now our user has one additional field called 'subscribedTo'
+
+
+        // as we know, we create document when every user(channel) is subscribed to other channels
+        // if we get all the document which has the same subscriber for different channels we can count a channel(user) is subscribed to other channels
+      },
+    },
+
+    // now we have channel(user) details with subscribers and subscribed to field
+    // on basis of that we will count the numbers
+    {
+      //adding additional fields to our channel document on the result of previous stages
+      $addFields:{ 
+        subscribersCount:{
+          $size: "$subscribers" //gives the count of all the subscibers
+        },
+        channelsSubscribedToCount:{
+          $size:"$subscribedTo" // gives the count of subscribed to different channels
+        },
+        // to check and adding field whether our user subscribedor not, to the current channel when the user hits the current channel endpoint
+        isSubscribed:{
+          $cond:{
+            if:{$in:[req.user?_id,"$subscribers.subsciber"]},
+            then:true,
+            else:false
+          }
+        }
+      }
+    },
+    {
+      $project:{
+        fullName:1,
+        userName:1,
+        subscribersCount:1,
+        channelsSubscribedToCount:1,
+        avatar:1,
+        coverImage:1,
+        isSubscribed:1,
+        email:1
+        
+      }
+    }
+  ]);
+
+  if (!channel?.length) {
+    throw new ApiError(404, "Channel does not exist!");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        channel[0],
+        "Channel profile details fetched successfully"
+      )
+    );
+});
+
 export {
   registerUser,
   loginUser,
@@ -465,4 +580,5 @@ export {
   updateUserDetails,
   updateAvatar,
   updateCoverImage,
+  getUserChannelProfile,
 };
