@@ -485,7 +485,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       },
     },
 
-
     // second stage to get all the subscriber to this channel
     {
       $lookup: {
@@ -502,9 +501,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       },
     },
 
-
     // third stage to get this channel subscribed to other channels
-    // here we get the user(channel) document(which we got using req.params at first place) 
+    // here we get the user(channel) document(which we got using req.params at first place)
     // with extra field added from the previous stage
     {
       $lookup: {
@@ -513,7 +511,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         foreignField: "subscriber",
         as: "subscribedTo",
         // now our user has one additional field called 'subscribedTo'
-
 
         // as we know, we create document when every user(channel) is subscribed to other channels
         // if we get all the document which has the same subscriber for different channels we can count a channel(user) is subscribed to other channels
@@ -524,36 +521,38 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     // on basis of that we will count the numbers
     {
       //adding additional fields to our channel document on the result of previous stages
-      $addFields:{ 
-        subscribersCount:{
-          $size: "$subscribers" //gives the count of all the subscibers
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers", //gives the count of all the subscibers
         },
-        channelsSubscribedToCount:{
-          $size:"$subscribedTo" // gives the count of subscribed to different channels
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo", // gives the count of subscribed to different channels
         },
         // to check and adding field whether our user subscribedor not, to the current channel when the user hits the current channel endpoint
-        isSubscribed:{
-          $cond:{
-            if:{$in:[req.user?_id,"$subscribers.subsciber"]},
-            then:true,
-            else:false
-          }
-        }
-      }
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subsciber"] },
+            //checking condition if the requested user is in the list of subscribers list of channel or not, if yes then snd true or else false
+            then: true,
+            else: false,
+          },
+        },
+      },
     },
+
     {
-      $project:{
-        fullName:1,
-        userName:1,
-        subscribersCount:1,
-        channelsSubscribedToCount:1,
-        avatar:1,
-        coverImage:1,
-        isSubscribed:1,
-        email:1
-        
-      }
-    }
+      $project: {
+        fullName: 1,
+        userName: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        avatar: 1,
+        coverImage: 1,
+        isSubscribed: 1,
+        email: 1,
+      },
+      // projecting or sending only the data required, writing 1(true) for required field
+    },
   ]);
 
   if (!channel?.length) {
