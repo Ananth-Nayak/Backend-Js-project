@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 // since access and refresh tokens needs in so much places for user we create method to generate tokens for user
 // we could have write this in different file but these tokens only needed while validating user only
@@ -570,6 +571,85 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    // whenever we store the data in mongoDb, it gives unique id for each document
+    // but that id will be string with object id string before it
+    // till now whenever we do operations on any db models, mongoose was helping us to connect DB as we created the model with the help of mongoose
+    // but aggregation operation is directly to the database, so while using id in the aggregation we have to pass the id in such way that mongodb creates id
+    // to create the id ,as same way mongodb creates and stores id for us we can take help of mongoose
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user?._id),
+        // here mongoose will create id using req._id in a same way mongodb creates and stores for each document
+        // now using $match mongodb tries to find the document with field _id is similar to the id we passed
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        // now this lookup method adds watchHistory field to a user document which we got by using $match field
+        // since videos model contain owner field which is again refering to user model
+        // but now we only got the id of that video owner
+        // to get details of owner we create subpipeline inside the main pipeline
+        pipeline: [
+          // any pipeline added here will affect watchHistory field
+          {
+            // now we are in the "videos" model bcs of the main lookup
+            // in last lookup we added "video" document data to user data as field
+            // we are writing in that video data which is field in the user data to find the owner of video using the ownerId(who is also another user)
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              // now we are addinng complete details of video owner in the video deatils which is in the watchHistory of current requested user
+              // but we do not want all the details of owner
+              // so we project only the required field
+              pipeline: [
+                // any pipeline added here will affect to owners field
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          // we got the owner details with required field but that data is stored as first element of array in owner field, in frontend we have to use for loop to get this data from array
+          // to avoid these and to send clear data we use another pipeline
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+                // this will take first element from owner field and added directly as field inside the watchHistory field which is inside current user
+
+                // otherwise we had to go at current user document from there watchHistory field inside that field => owner field, inside the ownerfield, the owner details are stored as first element of array
+
+                // now the owner details which is inside first element of array is directly stored as field "owner" in the watchHistory
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user[0].watchHistory,
+      // we did not add any stages to main pipeline to avoid array so we use user[0], which is first element of user array
+      "Watch history fetched successfully"
+    )
+  );
+});
+
 export {
   registerUser,
   loginUser,
@@ -580,4 +660,5 @@ export {
   updateAvatar,
   updateCoverImage,
   getUserChannelProfile,
+  getWatchHistory,
 };
