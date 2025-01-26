@@ -661,4 +661,5 @@ export {
   updateCoverImage,
   getUserChannelProfile,
   getWatchHistory,
+  changeCurrentPassword,
 };

@@ -4,6 +4,13 @@ import {
   loginUser,
   logoutUser,
   refreshBothTokens,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateUserDetails,
+  updateAvatar,
+  updateCoverImage,
+  getUserChannelProfile,
+  getWatchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -39,5 +46,28 @@ router.route("/logout").post(verifyJWT, logoutUser);
 // since we wrote 'next()' at the end of verifyJwt method, bcz of it, logoutUser get called next
 // this is how we add multiple middleware to a route
 router.route("/refresh-token").post(refreshBothTokens);
+
+router.route("/change-password").post(verifyJWT, changeCurrentPassword);
+
+router.route("/current-user").get(verifyJWT, getCurrentUser);
+
+// use patch here, if we used post here it would change all the details
+router.route("/update-account").patch(verifyJWT, updateUserDetails);
+
+// we have to first verify the user whether user is logged in or not
+// this operation only updates avatar so patch is used and uploading file should be handled by multer middleware
+// since we are uploading single file multer will add file(not files) to the request(req.file)
+router
+  .route("/update-avatar")
+  .patch(verifyJWT, upload.single("avatar"), updateAvatar);
+
+router
+  .route("/update-cover-image")
+  .patch(verifyJWT, upload.single("/coverImage"), updateCoverImage);
+
+// when user goes to any channel's profile
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+
+router.route("/history").get(verifyJWT, getWatchHistory);
 
 export default router;
